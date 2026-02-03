@@ -369,67 +369,49 @@
         }
 
         @media print {
-            @page {
-                size: 10cm 6.5cm;
-                margin: 0;
-            }
-            
-            body {
-                background: white;
-                width: 10cm;
-                height: 6.5cm;
-                margin: 0;
-                padding: 0;
-            }
-            
-            body::before {
-                display: none;
-            }
-            
-            .container,
-            header,
-            .nav-tabs,
-            .tab-content,
-            .card,
-            .staff-link,
-            .modal-content,
-            .modal-close,
-            .action-buttons {
-                display: none !important;
-            }
-            
-            .modal {
-                display: block !important;
-                position: static !important;
-                background: white !important;
-            }
-            
-            .visitor-badge {
-                display: block !important;
-                position: absolute !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: 10cm !important;
-                height: 6.5cm !important;
-                margin: 0 !important;
-                padding: 16px !important;
-                box-shadow: none !important;
-                border: 2px solid #000 !important;
-                page-break-after: avoid !important;
-                page-break-inside: avoid !important;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
-            
-            .visitor-badge {
-                width: 340px;
-                height: 220px;
-            }
-        }
+		    @page {
+		        size: 10cm 6.5cm;
+		        margin: 0;
+		    }
+		    
+		    body {
+		        background: white !important;
+		        width: 10cm;
+		        height: 6.5cm;
+		        margin: 0;
+		        padding: 0;
+		    }
+		    
+		    body::before {
+		        display: none !important;
+		    }
+		    
+		    body * {
+		        visibility: hidden !important;
+		    }
+		    
+		    .visitor-badge,
+		    .visitor-badge * {
+		        visibility: visible !important;
+		    }
+		    
+		    .visitor-badge {
+		        position: absolute !important;
+		        top: 0 !important;
+		        left: 0 !important;
+		        width: 10cm !important;
+		        height: 6.5cm !important;
+		        margin: 0 !important;
+		        padding: 16px !important;
+		        box-shadow: none !important;
+		        transform: none !important;
+		        page-break-after: avoid !important;
+		        page-break-inside: avoid !important;
+		        border: 2px solid #000 !important;
+		        border-radius: 8px !important;
+		        background: white !important;
+		    }
+		}
     </style>
 </head>
 <body>
@@ -780,6 +762,7 @@
         function sendToMobile() {
             if (!currentBadgeData) return;
             
+            // Show loading
             const originalBtn = event.target;
             const originalText = originalBtn.textContent;
             originalBtn.textContent = 'Generating...';
@@ -790,92 +773,62 @@
                 scale: 3,
                 backgroundColor: '#ffffff'
             }).then(canvas => {
-                canvas.toBlob(async (blob) => {
-                    const fileName = `visitor-badge-${currentBadgeData.fullName.replace(/\s+/g, '-')}.jpg`;
-                    const file = new File([blob], fileName, { type: 'image/jpeg' });
-                    const message = `Hello! Your visitor badge has been generated. Visitor ID: ${currentBadgeData.id}. Please show your badge when arriving and leaving.`;
-                    
-                    // Try native share first (works on mobile)
-                    if (navigator.share) {
-                        try {
-                            const canShare = navigator.canShare && navigator.canShare({ files: [file] });
-                            if (canShare) {
-                                await navigator.share({
-                                    files: [file],
-                                    title: 'Visitor Badge',
-                                    text: message
-                                });
-                                originalBtn.textContent = originalText;
-                                originalBtn.disabled = false;
-                                return;
-                            }
-                        } catch (error) {
-                            if (error.name === 'AbortError') {
-                                originalBtn.textContent = originalText;
-                                originalBtn.disabled = false;
-                                return;
-                            }
-                        }
-                    }
-                    
-                    // Fallback: Download and show instructions
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.download = fileName;
-                    link.href = url;
-                    link.click();
-                    URL.revokeObjectURL(url);
-                    
-                    const cleanPhone = currentBadgeData.phone.replace(/[^0-9+]/g, '');
-                    
-                    const modalHTML = `
-                        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 10000;" id="shareModal">
-                            <div style="background: var(--card-bg); border: 2px solid var(--accent); border-radius: 12px; padding: 2rem; max-width: 500px; text-align: center;">
-                                <h3 style="color: var(--accent); margin-bottom: 1rem; font-size: 1.3rem;">✅ Badge Downloaded!</h3>
-                                <p style="color: var(--text); margin-bottom: 1rem;">Saved as: ${fileName}</p>
-                                
-                                <div style="background: var(--secondary); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
-                                    <p style="color: var(--text-dim); font-size: 0.9rem;">Visitor: ${currentBadgeData.fullName}</p>
-                                    <p style="color: var(--accent); font-size: 1.1rem; font-weight: bold; margin-top: 0.5rem;">${currentBadgeData.phone}</p>
-                                </div>
-                                
-                                <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 1rem;">Send via WhatsApp:</p>
-                                
-                                <div style="background: rgba(37, 211, 102, 0.1); border: 1px solid #25D366; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; text-align: left;">
-                                    <p style="color: var(--text); font-size: 0.9rem; line-height: 1.8;">
-                                        <strong style="color: #25D366;">📱 Steps:</strong><br>
-                                        1. Open WhatsApp on your phone<br>
-                                        2. Find: <strong>${currentBadgeData.fullName}</strong><br>
-                                        3. Tap 📎 (attachment)<br>
-                                        4. Select "Document" or "Gallery"<br>
-                                        5. Choose: ${fileName}<br>
-                                        6. Send!
-                                    </p>
-                                </div>
-                                
-                                <div style="display: grid; gap: 1rem;">
-                                    <button onclick="openWhatsAppWeb('${cleanPhone}', '${encodeURIComponent(message)}')" style="background: #25D366; color: white; border: none; padding: 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 1rem;">
-                                        💬 Open WhatsApp
-                                    </button>
-                                    <button onclick="copyPhoneNumber('${currentBadgeData.phone}')" style="background: var(--secondary); color: var(--text); border: 1px solid var(--border); padding: 1rem; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                                        📋 Copy Phone Number
-                                    </button>
-                                    <button onclick="closeShareModal()" style="background: var(--secondary); color: var(--text-dim); border: 1px solid var(--border); padding: 0.75rem; border-radius: 8px; cursor: pointer;">
-                                        Close
-                                    </button>
-                                </div>
-                                
-                                <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 1rem; font-style: italic;">
-                                    💡 Badge is in your Downloads folder
-                                </p>
+                // Download the badge
+                const url = canvas.toDataURL('image/jpeg', 0.95);
+                const link = document.createElement('a');
+                const fileName = `visitor-badge-${currentBadgeData.fullName.replace(/\s+/g, '-')}.jpg`;
+                link.download = fileName;
+                link.href = url;
+                link.click();
+                
+                // Clean phone number
+                const cleanPhone = currentBadgeData.phone.replace(/[^0-9+]/g, '');
+                const displayPhone = currentBadgeData.phone;
+                
+                // Create message
+                const message = `Hello! Your visitor badge has been generated. Visitor ID: ${currentBadgeData.id}. Please show your badge when arriving and leaving.`;
+                
+                // Create modal with options
+                const modalHTML = `
+                    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 10000;" id="sendModal">
+                        <div style="background: var(--card-bg); border: 2px solid var(--accent); border-radius: 12px; padding: 2rem; max-width: 500px; text-align: center;">
+                            <h3 style="color: var(--accent); margin-bottom: 1rem; font-size: 1.3rem;">✅ Badge Downloaded!</h3>
+                            <p style="color: var(--text); margin-bottom: 1.5rem;">Saved as: ${fileName}</p>
+                            
+                            <div style="background: var(--secondary); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                                <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 0.5rem;">Visitor: ${currentBadgeData.fullName}</p>
+                                <p style="color: var(--accent); font-size: 1.1rem; font-weight: bold;">${displayPhone}</p>
                             </div>
+                            
+                            <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 1.5rem;">Choose how to send the badge:</p>
+                            
+                            <div style="display: grid; gap: 1rem;">
+                                <button onclick="openWhatsApp('${cleanPhone}', '${encodeURIComponent(message).replace(/'/g, "\\'")}', '${fileName}')" style="background: #25D366; color: white; border: none; padding: 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 1rem;">
+                                    📱 Open WhatsApp
+                                </button>
+                                <button onclick="openSMS('${cleanPhone}', '${encodeURIComponent(message).replace(/'/g, "\\'")}', '${fileName}')" style="background: var(--accent); color: var(--primary); border: none; padding: 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 1rem;">
+                                    💬 Send SMS
+                                </button>
+                                <button onclick="copyPhone('${displayPhone}')" style="background: var(--secondary); color: var(--text); border: 1px solid var(--border); padding: 1rem; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                                    📋 Copy Phone Number
+                                </button>
+                                <button onclick="closeSendModal()" style="background: var(--secondary); color: var(--text-dim); border: 1px solid var(--border); padding: 0.75rem; border-radius: 8px; cursor: pointer;">
+                                    Close
+                                </button>
+                            </div>
+                            
+                            <p style="color: var(--warning); font-size: 0.85rem; margin-top: 1rem; background: rgba(255, 170, 0, 0.1); padding: 0.75rem; border-radius: 6px;">
+                                💡 Badge image is in your Downloads folder<br>Attach it to your message manually
+                            </p>
                         </div>
-                    `;
-                    
-                    document.body.insertAdjacentHTML('beforeend', modalHTML);
-                    originalBtn.textContent = originalText;
-                    originalBtn.disabled = false;
-                }, 'image/jpeg', 0.95);
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+                
+                // Reset button
+                originalBtn.textContent = originalText;
+                originalBtn.disabled = false;
             }).catch(error => {
                 console.error('Error:', error);
                 alert('Error generating badge. Please try again.');
@@ -884,23 +837,33 @@
             });
         }
 
-        function openWhatsAppWeb(phone, message) {
+        function openWhatsApp(phone, message, fileName) {
             window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
-            alert('📱 WhatsApp opened!\n\n📎 To attach badge:\n1. Click 📎 attachment button\n2. Choose "Document" or "Photos & Videos"\n3. Select the downloaded badge\n4. Send!');
+            setTimeout(() => {
+                alert(`📱 WhatsApp opened for ${phone}\n\n📎 To send the badge:\n1. Click attachment (📎) button\n2. Select Gallery/Photos\n3. Choose: ${fileName}\n4. Send!`);
+            }, 1000);
         }
 
-        function copyPhoneNumber(phone) {
+        function openSMS(phone, message, fileName) {
+            window.open(`sms:${phone}?body=${message}`, '_blank');
+            setTimeout(() => {
+                alert(`💬 SMS opened for ${phone}\n\n📎 To attach badge:\n1. Click attachment button\n2. Select the badge image: ${fileName}\n3. Send!`);
+            }, 1000);
+        }
+
+        function copyPhone(phone) {
             navigator.clipboard.writeText(phone).then(() => {
-                alert(`✅ Phone number copied: ${phone}\n\nYou can now paste it in any messaging app!`);
+                alert(`✅ Phone number copied: ${phone}\n\nYou can now:\n1. Paste in any messaging app\n2. Attach the badge image from Downloads\n3. Send!`);
             }).catch(() => {
                 prompt('Copy this phone number:', phone);
             });
         }
 
-        function closeShareModal() {
-            const modal = document.getElementById('shareModal');
+        function closeSendModal() {
+            const modal = document.getElementById('sendModal');
             if (modal) modal.remove();
         }
+
 
         function sendViaEmail() {
             if (!currentBadgeData) return;
